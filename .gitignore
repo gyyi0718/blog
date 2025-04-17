@@ -1,0 +1,15 @@
+# 파이썬 캐시 파일
+__pycache__/
+*.py[cod]
+
+# 가상환경
+.venv/
+env/
+*.egg-info/
+
+# 텍스트/CSV 파일 무시
+*.txt
+*.csv
+*.png
+*.jpg
+*.bmp
