@@ -1,65 +1,83 @@
+import pyautogui
+import time
+import re
+from selenium import webdriver
+from selenium.webdriver.chrome.options import Options
+import ctypes
+import requests
+import json
+import pandas as pd
 from selenium import webdriver
 from selenium.webdriver.common.by import By
-from selenium.webdriver.chrome.options import Options
-import time
-from webdriver_manager.chrome import ChromeDriverManager
-from selenium.webdriver.chrome.service import Service
-from selenium.webdriver.chrome.options import Options
-from selenium import webdriver
-from selenium.webdriver.common.by import By
-from selenium.webdriver.common.keys import Keys
-from selenium.webdriver.support.ui import WebDriverWait
-from selenium.webdriver.support import expected_conditions as EC
-import time
-# Selenium 웹드라이버 설정
+from selenium.webdriver.common.action_chains import ActionChains
+import ctypes
+# DPI 비율 보정
+ctypes.windll.user32.SetProcessDPIAware()
+
+click_x = 1100
+click_y = 830
+# 1) Selenium으로 브라우저 켜서 팝업 닫기
 options = Options()
-options.add_argument("--headless")  # 브라우저 창을 띄우지 않음
-driver = webdriver.Chrome(service=Service(ChromeDriverManager().install()), options=options)
-wait = WebDriverWait(driver, 10)
+options.add_argument("--start-maximized")
+driver = webdriver.Chrome(options=options)
+driver.get("https://www.openub.com/")
+time.sleep(5)
 
-try:
+# 팝업 닫기 (pyautogui 좌표는 환경에 맞게 조정하세요)
+pyautogui.moveTo(click_x, click_y, duration=0.2)
+pyautogui.click()
+time.sleep(1)
 
-    options = webdriver.ChromeOptions()
-    # options.add_argument("--headless")  # ← 이 줄을 주석처리
-    options.add_argument("--window-size=1280,800")
+###########################################
 
-    driver = webdriver.Chrome(options=options)
+url = "https://api.openub.com/v2/coord"
 
-    # 오픈업 웹사이트 접속
-    driver.get("https://www.openub.com")
-    time.sleep(2)
-    btn_exists = driver.execute_script("""
-        return !!document.querySelector('button.close');
-    """)
+headers = {
+    "Origin": "https://www.openub.com",
+    "Referer": "https://www.openub.com/",
+    "User-Agent": "Mozilla/5.0",
+    "Content-Type": "application/json"
+}
 
-    print("✅ 닫기 버튼 있음" if btn_exists else "❌ 닫기 버튼 없음")
-    driver.execute_script("""
-        const btn = document.querySelector('button.close');
-        if (btn) {
-            btn.style.display = 'block';
-            btn.style.visibility = 'visible';
-            btn.style.pointerEvents = 'auto';
-            btn.style.opacity = '1';
-            btn.scrollIntoView({behavior: 'smooth', block: 'center'});
-            setTimeout(() => btn.click(), 100);  // JS 이벤트로 클릭
-        }
-    """)
-    time.sleep(1)
-    # 검색창 로딩 대기 후 검색어 입력
-    # ✅ 검색창 로딩 후 검색어 입력
-    search_box = wait.until(
-        EC.presence_of_element_located((By.CSS_SELECTOR, "input#search-address-map-mobile"))
-    )
-    search_box.send_keys("서울 금천구 가산동")
-    search_box.send_keys(Keys.ENTER)
-    print("🔍 검색 실행")
+# 지도 내 좌표 박스
+payload = {
+    "bbox": {
+        "ne": {"lng": 126.8897083, "lat": 37.4898443},
+        "sw": {"lng": 126.8754118, "lat": 37.4733469}
+    }
+}
 
-    # 매장 목록 수집
-    store_elements = driver.find_elements(By.CLASS_NAME, "store-item")  # 실제 클래스명은 웹사이트 구조에 따라 다를 수 있음
-    for store in store_elements:
-        name = store.find_element(By.CLASS_NAME, "store-name").text
-        revenue = store.find_element(By.CLASS_NAME, "store-revenue").text
-        print(f"{name}: {revenue}")
+res = requests.post(url, headers=headers, json=payload)
+print("🔁 상태코드:", res.status_code)
 
-finally:
-    driver.quit()
+if res.status_code == 200:
+    try:
+        data = res.json()
+        if isinstance(data, list):
+            print(f"🏢 건물 개수: {len(data)}")
+            for b in data:
+                print(f"{b['bldNm']} / {b['rdnu']} / {b['addr']}")
+        else:
+            print("📍 응답은 건물 리스트가 아님 (예: 주소만 반환)")
+            print(json.dumps(data, indent=2, ensure_ascii=False))
+    except Exception as e:
+        print("❌ JSON 파싱 실패:", e)
+else:
+    print("❌ 요청 실패:", res.status_code)
+
+time.sleep(3)
+
+# 지도 로딩 후 바로 여러 위치 반복 클릭
+map_area = driver.find_element(By.ID, "map")
+actions = ActionChains(driver)
+
+for dx in range(300, 601, 100):  # x축 반복
+    for dy in range(250, 501, 100):  # y축 반복
+        actions.move_to_element_with_offset(map_area, dx, dy).click().perform()
+        time.sleep(2)
+
+        # 추정 매출 텍스트 추출
+        elements = driver.find_elements(By.XPATH, "//*[contains(text(), '억') or contains(text(), '원')]")
+        print(f"🧭 클릭 위치: ({dx},{dy})")
+        for e in elements:
+            print("   💰", e.text)
