@@ -36,19 +36,15 @@ time.sleep(1)
 pyautogui.moveTo(150, 170, duration=0.2)
 pyautogui.click()
 
-# 2) 검색 아이콘 클릭 (좌표 예: x=100, y=60)
-pyautogui.moveTo(150, 170, duration=0.2)
-pyautogui.click()
-
 # 2) 클립보드에 "강남역" 복사
 pyperclip.copy("강남역")
-
 # 3) Ctrl+V 로 붙여넣기
 pyautogui.hotkey("ctrl", "v")
-time.sleep(0.2)
+time.sleep(2)
 
-# 4) Enter 로 검색 실행
-pyautogui.press("enter")
+# 2) 검색 아이콘 클릭 (좌표 예: x=100, y=60)
+pyautogui.moveTo(150, 260, duration=0.2)
+pyautogui.click()
 
 # 5) 검색어 입력 직후 제안목록 뜰 때까지 잠시 대기
 time.sleep(1)
