@@ -7,6 +7,8 @@ import ctypes
 import requests
 import json
 import pandas as pd
+import pyperclip
+import time
 from selenium import webdriver
 from selenium.webdriver.common.by import By
 from selenium.webdriver.common.action_chains import ActionChains
@@ -30,41 +32,33 @@ time.sleep(1)
 
 ###########################################
 
-url = "https://api.openub.com/v2/coord"
+# 2) 검색 아이콘 클릭 (좌표 예: x=100, y=60)
+pyautogui.moveTo(150, 170, duration=0.2)
+pyautogui.click()
 
-headers = {
-    "Origin": "https://www.openub.com",
-    "Referer": "https://www.openub.com/",
-    "User-Agent": "Mozilla/5.0",
-    "Content-Type": "application/json"
-}
+# 2) 검색 아이콘 클릭 (좌표 예: x=100, y=60)
+pyautogui.moveTo(150, 170, duration=0.2)
+pyautogui.click()
 
-# 지도 내 좌표 박스
-payload = {
-    "bbox": {
-        "ne": {"lng": 126.8897083, "lat": 37.4898443},
-        "sw": {"lng": 126.8754118, "lat": 37.4733469}
-    }
-}
+# 2) 클립보드에 "강남역" 복사
+pyperclip.copy("강남역")
 
-res = requests.post(url, headers=headers, json=payload)
-print("🔁 상태코드:", res.status_code)
+# 3) Ctrl+V 로 붙여넣기
+pyautogui.hotkey("ctrl", "v")
+time.sleep(0.2)
 
-if res.status_code == 200:
-    try:
-        data = res.json()
-        if isinstance(data, list):
-            print(f"🏢 건물 개수: {len(data)}")
-            for b in data:
-                print(f"{b['bldNm']} / {b['rdnu']} / {b['addr']}")
-        else:
-            print("📍 응답은 건물 리스트가 아님 (예: 주소만 반환)")
-            print(json.dumps(data, indent=2, ensure_ascii=False))
-    except Exception as e:
-        print("❌ JSON 파싱 실패:", e)
-else:
-    print("❌ 요청 실패:", res.status_code)
+# 4) Enter 로 검색 실행
+pyautogui.press("enter")
 
+# 5) 검색어 입력 직후 제안목록 뜰 때까지 잠시 대기
+time.sleep(1)
+
+# 6) 키보드로 첫 번째 항목 선택 → 엔터
+pyautogui.press("down")
+time.sleep(0.1)
+pyautogui.press("enter")
+
+# 7) 지도 이동 대기
 time.sleep(3)
 
 # 지도 로딩 후 바로 여러 위치 반복 클릭
