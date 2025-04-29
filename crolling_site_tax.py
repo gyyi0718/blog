@@ -156,9 +156,12 @@ def extract_hwp(file_path):
         "파일": os.path.basename(file_path),
         "설명": "HWP 파일 (텍스트 추출 안됨)"
     })
+
+
+
 # ------------------------ 게시글 수집 및 처리 ------------------------ #
 def site1_pattern(base_list_url):
-    for page in range(20, 100):  # 페이지 범위 조정
+    for page in range(1, 2):  # 페이지 범위 조정
         driver.get(f"{base_list_url}&pageIndex={page}")
         time.sleep(1)
         soup = BeautifulSoup(driver.page_source, "html.parser")
@@ -171,13 +174,13 @@ def site1_pattern(base_list_url):
 
             title = a_tag.get_text(strip=True)
             href = a_tag.get("href")
-            detail_url = urljoin("https://www.guro.go.kr/www/", href)
+            detail_url = urljoin("https://www.gjcity.go.kr/", href)
 
             print(f"🔎 게시글: {title} → {detail_url}")
             res = requests.get(detail_url, headers=headers)
             soup = BeautifulSoup(res.text, "html.parser")
             attach_links = soup.select("a.p-attach__link")
-            file_urls = [urljoin("https://www.guro.go.kr/www/", tag["href"]) for tag in attach_links if tag.get("href")]
+            file_urls = [urljoin("https://www.gjcity.go.kr/", tag["href"]) for tag in attach_links if tag.get("href")]
 
             for file_url in file_urls:
                 file_path = download_file(file_url, title)
@@ -209,7 +212,7 @@ def delete_folder(folder_path):
         print(f"⚠️ 존재하지 않거나 폴더가 아닙니다: {folder}")
 # ------------------------ 실행 및 결과 저장 ------------------------ #
 if __name__ == "__main__":
-    base_list_url = "https://www.guro.go.kr/www/selectBbsNttList.do?bbsNo=655&&pageUnit=10&key=1732"
+    base_list_url = "https://www.gjcity.go.kr/"
     site1_pattern(base_list_url)
 
     cleaned_restaurants = [r for r in restaurant_list if isinstance(r, str) and len(r.strip()) >= 2]
@@ -218,7 +221,7 @@ if __name__ == "__main__":
     # 결과 저장
     final_df = pd.DataFrame(restaurant_counter.items(), columns=["사용장소", "횟수"])
     final_df = final_df.sort_values(by="횟수", ascending=False)
-    final_df.to_csv("구로청_식당_사용빈도.csv", index=False, encoding="utf-8-sig")
+    final_df.to_csv("광주시청_식당_사용빈도.csv", index=False, encoding="utf-8-sig")
     print("✅ 식당 사용 빈도 분석 결과 저장 완료")
 
     delete_folder(save_dir)
